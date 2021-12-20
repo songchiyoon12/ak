@@ -1,0 +1,144 @@
+[문자열]
+자바에서는 문자열도 객체이므로 메서드가 있고 이 메서드로 문자열의 내용을 
+다룰 수 있다. 또한 자바에서 문자열은 불변이라 상태변경이 불가능하다.
+이 떄문에 문자열은 가변객체와 처리하는 방법이 다르다 불변 객체에 다른 값을
+대입하거나 변경 하려면 불변객체 사용법을 정확히 숙지하고 있어야한다.
+
+[부분문자열]
+subString()메서드로 두 지점 사이에 있는 부분 문자열을 가지고온다. 다음 해법은 문자열을 하나
+생성하고 subString()으로 문자열의 각 부분을 출력한다.
+
+public class 부분문자열 {
+    public static void main(String[]args){
+        String str="This is the original String";
+
+        System.out.println(str.substring(0,str.length()));
+        System.out.println(str.substring(5,20));
+
+    }
+}
+[문자열 비교하기]
+문자열 객체에 내장된 equals(),equalsIgnoreCase(),compareTo().compareToIgnoreCase()메서드로 문자열의 내용을 비교한다. 
+
+프로그래밍 언어를 사용할떄 가장 미묘한 부분 중 하나가 둘 또는 그 이상의 값을 비교하는 것이다.
+자바에서 문자열 비교는 쉬운편이다. 문자열을 비교할떄 ==을 사용하면 안된다는 것만 명심하자
+==비교 연산자는 문자열의 내용이 아니라 객체의 참조를 비교하는 것이다. 자바의 모든 객체는 equals()를
+가지고있다. 자바 문자열의 equals()는 객체 자체가 아니라 문자열의 내용을 비교하게 재정의 되어있다.
+
+equals()메서드는 먼저 ==연산자를 사용하여 비교하는 문자열들이 같은 객체를 참조하는지 확인하고
+같은 객체를 참조하면 참을 반환한다. 같은 객체를 참조하지 않는다면 equals()는 서로 비교되는
+문자열이 정확히 값을 갖는지 확인하려고 문자열을 하나씩 비교한다. 그런데 만약 두 문자열의
+대소문자가 다르다면? 이경우 equals()는 false를 반환한다. 이떄 사용하는 것이
+equalsIgnoreCase()이다 이 메서드는 각 문자를 비교할때 대소문자 구별을 하지 않는다. 
+
+
+compareTo() ,compareToIgnoreCase()는 문자열을 사전순으로 비교한다. 이들은 문자열에 포함된 각 문자의 유니코드에
+값에 기반하여 문자열을 비교한다. 메서드가 호출된 문자열이 인자로 주어진 문자열보다 사전 순으로 앞설 경우 음수를
+반환한다. 메서드가 호출된 문자열이 인자로 주어진 문자열보다 사전순으로 뒤질경우 양수를 반환한다. 같은경우에는 0을 반환한다
+if(one.compareTo(var1)==0){
+	sout("같음");
+} 
+
+[공백 잘라내기]
+문자열의 trim()메서드를 사용하면  양끝의 공백을 제거해준다. 
+
+[문자열 대소문자 바꾸기]
+toUpperCase()와 toLowerCase()메서드를 사용하자 문자열 객체가 제공하는 이 메서드들은 모든 문자의 대소문자
+변경을 도와준다. 
+
+		String str="STRING";
+        String str2="string";
+        System.out.println(str2.toUpperCase(Locale.ROOT));
+        System.out.println(str.toLowerCase(Locale.ROOT));
+문자열의 모든 문자를 대소문자료 만들려면 toUpperCase(),소문자로 만들려면 toLowerCase()를 사용하면 된다.
+
+[문자열 연결하기]
+여러 문자열을 하나로 연결하고 싶을때는 concat()메서드를 사용하자.
+
+방법1
+String one="one";
+String two="two";
+String result=one.concat(two);
+
+방법2
+String one="hello";
+String two="java7"
+String result=one+" "+two;
+
+방법3
+StringBuilder와 StringBuffer을 사용하여 문자열을 결합하자 StringBuffer을 사용하여 결합해보자
+
+String one="hello";
+String two="java7";
+StringBuffer buffer=new StringBuffer();
+String result=buffer.append(one).append(" ").append(two);
+sout(result);
+
+자바는 문자열을 연결하는 다양한 방법을 제공한다 어느게 좋다고 말할수는 없지만 때에 따라 어느 하나가 
+나머지보다 나은 경우가 있다 concat()메서드는 문자열에 내장된 보조 메서드이다. 이 메서드는 한 문자열의 끝의
+다른 문자열을 덧붙이는데 쓰인다 만약 두 문자열 사이에 빈칸을 넣고 싶다면 String result=one.concat(" "+two);
+이처럼 concat() 메서드는 어떤 문자열이나 문자열 조합도 다 받아들이기 때문에 매우 유용하다. 
+
+[문자열 숫자로 표현하기]
+
+보조메서드 Integer.valueOf()를 사용하여 문자열을 int타입으로 변환하자 
+Stirng one="1";
+Stirng two="2";
+
+방법1 Integer.valueOf()사용
+int result=Integer.valueOf(one)+Integer.valueOf(two); 모두 정수값으로 변환이 된다.
+방법2 Integer.parseInt()사용
+Stirng one="1";
+Stirng two="2";
+int result=Integer.parseInt(one)+Integer.parseInt(two);
+sout(result);
+
+Integer클래스는 int타입이나 Integer타입으로 변환해주는 valueOf()와 parseInt()2가지 형태가 있다.
+
+[문자열 안의 문자 순회하기]
+문자열을 문자 수준에서 접근하려면 문자열의 도우미 메서드를 조합하여 사용하자. 반복문 안에서
+보조 메서드를 사용하면 문자열 안의 각 문자를 손쉽게 순회할 수 있다. toCharArray()메서드를 써보자
+String str="Break down into chars";
+for(chars chr:str.toCharArray()){
+	sout(chr);
+}
+문자열 객체는 다양한 작업에 사용이 가능한 메서드를 제공한다 이 레시피의 해법은 몇 가지 문자열메서드의 사용법을 
+알려준다. toCharArray()메서드를 호출하면 문자열을 문자들로 분해하여 배열에 저장한다. toCharArray()는 chars[]을 
+반환하고 인덱스를 통해 이 배열을 탐색 할수 있다. charAt()메서드로 모든 문자를 순회한다. charAt()메서드는 int타입의
+인덱스 값을 받아 그 인덱스에 위치한 문자를 반환하다. 
+String str="Break down into chars";
+for(int x=0;x<=str.length()-1;i++){
+	sout(str.charAt(x));
+}
+
+[일치하는 텍스트 찾기]
+텍스트에서 특정문자열을 찾고싶다.
+정규표현식과 문자열의 보조 메서드 matches()를 사용하여 일치 여부를 확인하자. 이를 위해서는
+일치여부를 확인하고 싶은 문자열에 대해 matches()를 호출하기만 하면 된다.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+        

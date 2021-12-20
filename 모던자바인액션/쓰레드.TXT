@@ -1,0 +1,231 @@
+[스레드란?]
+우리들이 지금까지 만든 모든 클래스와 프로그램은 모두 단일 쓰레드로 동작하는 것들이었다.
+다시말해서 JAVA라는 명령어를 실행해서 결과를 출력하고 끝내는 지금까지 만든 프로그램은
+모두 여기에 속한다. 하지만 앞으로 우리가 만들 프로그램은 이렇게 만들면 안된다.
+
+자바프로그램을 사용하여 뒤에 클래스 이름을 붙이고 엔터를 치면 적어도 하나의JVM이 시작된다.
+보통 이렇게 JVM이 시작되면 자바 프로세스가 시작된다. 이 프로세스 라는 울타리 안에서 
+여러개의 쓰레드라는것이 아둥바둥 살게 된다. 즉 하나의 프로세스 내에 여러가지 쓰레드가 수행된다.
+
+정리하자면  클래스를 실행시키는 순간 자바 프로세스가 시작되고 main()메소드가 수행되면서 하나의
+쓰레드가 실행된다. 만약 많은 쓰레드가 필요하다면 이 main()메소드에서 쓰레드를 생성해주면 된다.
+
+[왜 필요할까?]
+프로세스가 하나 시작하려면 많은 자원이 필요하다 만약 하나의 작업을 동시에 수행하려고 할 떄 
+여러개의 프로세스를 띄워서 실행하면 각각 메모리르 할당하여 주어야만 한다. jvm은 기본적으로 아무런
+옵션없이 실행하면 os마다 다르지만 적어도 32mb~64mb의 물리 메모리를 점유한다. 그에 반해서 쓰레드를 
+하나 추가하면 1mb이내의 메모리를 점유한다. 그래서 쓰레드를 경략 프로세스 라고도 부른다.
+
+[Runnable 인터페이스와 Thread클래스]
+크게 2가지 방법이 있다. 하나는 Runnable 인터페이스를 사용하는 것이고  다른 하나는
+Thread 클래스를 상속받아서 사용하는 것이다. 모두 java.lang 패키지에 있다. 
+
+[start()]
+우리들이 쓰레드라는 것을 start()메소드를 통해서 시작했다는 것은 프로세스가 아닌 하나의 쓰레드를
+jvm에 추가하여 실행한다는 것이다. 우리들이 쓰레드를 구현할떄 start()메소드를 호출하면 쓰레드 클래스에
+있는 run() 메소드의 내용이 끝나든 끈나지 않든 간에 쓰레드를 시작한 메서드에서는 그 다음줄에 있는 코드를 실행한다.
+
+public class RunMultiThreads {
+    public static void main(String[]args){
+        RunMultiThreads runMultiThreads=new RunMultiThreads();
+        runMultiThreads.go();
+    }
+    private void go() {
+        RunnableSample[] runnableSample=new RunnableSample[5];
+        ThreadSample[] threadSample=new ThreadSample[5];
+        
+        for(int i=0 ;i<5;i++){
+            runnableSample[i]=new RunnableSample();
+            threadSample[i]=new ThreadSample();
+            new Thread(runnableSample[i]).start();
+            threadSample[i].start();
+        }
+    }
+}
+
+출력값
+런어블 시작
+쓰레드 시작
+쓰레드 시작
+쓰레드 시작
+런어블 시작
+런어블 시작
+쓰레드 시작
+런어블 시작
+쓰레드 시작
+런어블 시작
+
+여러번 실행해 보면 결과가 항상 달라진다는 것을 알수가 있다.
+
+[sleep()메소드]
+Thread클래스에는 deprecated된 메소드도 많고 static된 메소드도 많이 있다. 이미 이야기했지만
+deprecated된 메서드는 더 이상 사용하지 않는 것 이라는 의미다 그리고 static메소드는 객체를 생성하지 않아도
+사용할수 있는 메소드를 말한다. 다시 말해서 Thread에 있는 static메소드는 대부분 해당 쓰레드를 위해서 존재하는 것이 아니라
+JVM에 있는 쓰레드를 관리하기 위한 용도로 사용된다. 물론 예외도 있다 그 예외 중 하나가 이절에서 살펴볼 sleep()메소드다.
+
+sleep(long millis)매개변수로 넘어온 시간 만큼 대기한다.
+sleep(long millis,int nanos) 
+이 장의 앞부분에서 run()메소드가 끝나지 않으면 애플리케이션은 끝나지 않는다고 했었다 
+
+public class EndlessThread extends Thread{
+    @Override
+    public void run() {
+        while (true){
+            System.out.println(System.currentTimeMillis());
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+
+한가지 주의사항은 Thread.sleep()메소드를 사용할떄는 try/catch()로 묶어주어야한다. 
+
+[Thread클래스의 우선순위]
+
+MAX_PRIORITY 10 
+MORM_PRIORITY 5
+MIN_PRIORITY 1
+
+[데몬쓰레드]
+데몬 쓰레드가 아닌 사용자 쓰레드는 JVM이 해당 쓰레드가 끝날떄까지 기다린다고 했다 즉 우리가 어떤 스레드를
+데몬으로 지정하면 그 쓰레드가 수행되고있든 말든 상관없이 JVM이 끝날수 있다. 해당 스레드가 시작하기 전에 데몬 
+쓰레드로 지정되어야만 한다. 데몬 쓰레드의 특징을 알아보자.
+
+ public void run() {
+        try {
+            Thread.sleep(Long.MAX_VALUE);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+sleep()메소드를 사용하여 long의 최대값만큼 대기하도록 해놓았다. 별다른 일이 없는한 쓰레드는 끝나지 않는다.
+
+private void go() {
+     DaemonThread daemonThread=new DaemonThread();
+     daemonThread.start();
+    }
+ 아무런 메시지도 뿌리지 않는다 이제 데몬으로 해보자
+ 
+ 
+
+private void go() {
+     DaemonThread daemonThread=new DaemonThread();
+     daemonThread.setDaemon(true);
+     daemonThread.start();
+    }
+ 
+앞에서 다르게 데몬 쓰레드를 지정했을때는 프로그램이 대기하지 않고 그냥 끝나버린다.
+데몬쓰레드는 해당 쓰레드가 종료되지 않아도 다른 실행중인 일반쓰레드가 없다면 그냥 끝내버린다
+왜 만들었을까? 예를 들어 모니터링 하는 쓰레드를 별도로 띄워 모니터링 하다가 주요 쓰레드가
+종료되면 관련된 모니터링 쓰레드가 종료되어야 프로세스가 종료될수있다. 그런데 모니터링 쓰레드를
+데몬 쓰레도로 만들지 않으면 프로세스가 종료가 될수가 없다 이렇게 부가적인 작업을 수행하는 쓰레드를 선언할떄는 
+데몬쓰레드를 만든다. 
+
+
+[synchronized]싱크로나이즈 
+여러 쓰레드가 한 객체에 선언된 메소드에 접근하여 데이터를 처리하려고 할떄 동시에 연산을
+수행하여 값이 꼬이는 경우가 발생할수 있다. 메소드를synchronized 선언 하는것에 대해 알아보자
+메소드를 synchronized로 선언하려면 메소드 선언문에 synchronized를 넣어주면 된다. 
+
+public void plus(int value){
+	amount +=value;
+}
+이 메소드를 synchronized로 선언하려면 다음과 같이 해야한다.
+
+public synchronized void plus(int value){
+	amount +=value;
+}
+이 한 단어가 있는 것과 없는 것의 차이는 매우크다 만약 이 synchronized라는 단어가 메소드 선언부에 있으면
+동일한 객체의 이 메소드에 2개의 쓰레드가 접근하든 100개가 접근하든 한순간에는 하나의 쓰레드만 이 메소드를 실행한다.
+
+
+private void runCommonCalculate() {
+        CommonCalculate calc = new CommonCalculate();
+        ModifyAmountThread modifyAmountThread1 = new ModifyAmountThread(calc, true);
+        ModifyAmountThread modifyAmountThread2 = new ModifyAmountThread(calc, true);
+
+        modifyAmountThread1.start();
+        modifyAmountThread2.start();
+
+        try {
+            modifyAmountThread1.join();
+            modifyAmountThread2.join();
+            System.out.println("현재 값은 " + calc.getAmount());
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+결론적으로 RunSync클래스의 runCommonCalculate()메소드가 수행된 후에는 두 개의 쓰레드에서 하나의
+객체에 있는 amount라는 int타입의 값에 1을 만번 더한 결과를 출력한다. 즉 정상적인상황에서는 20000이 나와야하지만
+19829값같은 이상항 값이 나온다.  이러한 문제 해결을 위한것이 바로 synchronized이다 .
+
+그럼 20000이 정상출력이 된다. 
+
+[synchronized 블록]
+하지만 위에서 이렇게 하면 성능상 문제점이 발생할 수 있다. 예를 들어 어떤 클래스에 30줄짜리 메소드가 
+있다고 가정하자 그 클래스에도 amount라는 인스턴스 변수가 있고 30줄짜리 메소드에서 amount라는 변수를
+한 줄에서만 다룬다. 만약 해당 메소드 전체를 synchronized로 선언한다면 나저미 29줄의 처리를 할 떄
+필요 없는 대기 시간이 발생한다 이러한 경우에는 메소드 전체를 감싸면 안 되며 amount라는 변수를 처리하는
+부분만 synchronized처리를 해주면 된다.
+
+public void plus(){
+	synchronized(this){
+		amount +=value;
+	}
+}
+여기서는 그냥 this라고 지정했지만 일반적으로는 다음과 같이 별도의 객체를 선언하여 사용한다.
+
+Object lock=new Object();
+public void plus(){
+	synchronized(lock){
+		amount +=value;
+	}
+}
+    
+public void minus(){
+	synchronized(lock){
+		amount -=value;
+	}
+}
+
+synchronized를 사용할 떄에는 하나의 객체를 사용하여 블록내의 문장을 하나의 쓰레드만 수행하도록 할수 있다. 
+여기서 사용한 lock이라는 객체나 앞서 사용한 this는 모두 문지기라고 할수 있다. 
+
+[쓰레드를 통제하는 메소드들 join]
+
+join()이라는 메소드는 해당 쓰레드가 종료될떄가지 기다린다. 매개 변수가 없는 join()메소드는 해당 쓰레드가
+끝날떄까지 무한대로 대기한다. 만약 특정 시간만큼만 기다리고 싶다면 thread.join(60000)으로 지정하면 된다.
+
+interrupt()수행중인 쓰레드에 중지요청을 한다.
+
+NEW 쓰레드
+RUNNABLE
+BLOCKED
+WAITING
+TIMED_WAITING
+TERMINATED
+
+[Object 클래스에 선언된 쓰레드와 관련있는 메소드들]
+
+wait()
+다른 쓰레드가 Object객체에 대한 notify()메소드나 notifyAll()메소드를 
+호출할때까지 현재 쓰레드가 대기하고 있도록 한다. 
+
+notify()
+Object객체의 모니터에 대기하고 있는 단일 쓰레드를 깨운다.
+
+notifyAll()
+Object객체의 모니터에 대기하고 있는 모든 쓰레드를 깨운다.
+
+
+
+
+
+
+
+
+
+

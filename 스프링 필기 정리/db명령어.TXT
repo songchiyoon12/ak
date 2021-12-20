@@ -1,0 +1,30 @@
+[검색]
+SELECT 열이름
+FROM 테이블이름
+WHERE 조건
+
+[테이블생성]
+
+CREATE TABLE usertbl
+(
+	userId CHAR(8) NOT NULL PRIMARY KEY,
+	name VARCHAR(10) NOT NULL,
+	birthYear INT NOT NULL,
+	mDate    DATE
+);
+
+[테이블 데이터 넣기]
+INSERT INTO usertbl VALUES('lsg','이승기',1968);
+
+만약 위의 예에서 ID와 이름만을 입력하고 년도는 입력하기 싫으면
+INSERT INTO usertbl(id,userName) VALUES(2,'설현');
+이 경우 연도는 NULL이 들어간다.
+
+[데이터 수정]
+UPDATE 테이블이름
+SET 열1=값1,열2=값2
+WHERE 조건
+
+UPDATE buytbl
+SET price=price*15;
+

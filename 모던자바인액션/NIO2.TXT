@@ -1,0 +1,74 @@
+[Paths]
+이 클래스에서 제공하는 static한 get()메소드를 실행하면 Path라는 인터페이스의 객체를 얻을 수 있다.
+여기서 Path라는 인터페이스는 파일과 경로에 대한 정보를 가지고 있다.
+
+자세히 살펴볼 클래스는 Path/Paths 와 Files클래스다 
+디렉터리의 경로를 문자열로 지어하여 path객체를 얻을수 있다. 
+
+String dir2="C:\\song";
+Path pathdir2=Paths.get(dir2);
+Path files1=Files.createDirectories(pathdir2);
+
+[Files]
+기존 File클래스에서 제공되던 클래스의 단점들을 보완한 클래스다. 매우 많은 메소드들을
+제공하며 Path객체를 사용하여 파일을 통제한다.
+
+
+입력할 데이터 생성
+  public List<String> getContents() {
+        LocalDateTime dateTime=LocalDateTime.now();
+        List<String> contents = new ArrayList<>();
+        contents.add("이책은");
+        contents.add("이책은1");
+        contents.add("이책은2");
+        contents.add("이책은3");
+        contents.add("이책은4");
+        contents.add("현재시간"+ dateTime);
+        return contents;
+    }
+    
+파일 쓰기
+ public Path writeFile(Path path) throws IOException {
+        Charset charset=Charset.forName("EUC-KR");  //언어설정
+        List<String> contents=getContents();// 내용
+        StandardOpenOption openOption=StandardOpenOption.CREATE; //옵션
+        return Files.write(path,contents,charset,openOption); //경로 내용 언어, 옵션
+    }
+    
+파일읽기
+      public void readFile(Path path) throws Exception{
+        Charset charset=Charset.forName("EUC-KR");//언어설정
+        System.out.println("Path="+path); 
+        List<String> fileContents=Files.readAllLines(path,charset); // 경로,언어
+        for(String tempContents:fileContents){
+            System.out.println(tempContents);
+        }
+        System.out.println();
+    }
+    
+    
+읽고 쓰기 총괄
+ public Path WriteAndRead(String fileName){
+        Path returnPath=null;
+        try {
+        Path path= Paths.get(fileName);
+
+            returnPath=writeFile(path);
+            System.out.println("파일생성");
+            readFile(returnPath);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return  returnPath;
+    }    
+    
+    
+메인메소드
+
+public static void main(String[]args){
+        FilesManager sample=new FilesManager();
+        String fileName="C:\\godofjava\\aboutfile.txt";
+        Path fromPath=sample.WriteAndRead(fileName);
+    }
+    
+    

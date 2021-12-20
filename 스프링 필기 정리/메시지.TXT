@@ -1,0 +1,147 @@
+[메시지]
+message.properteis라는 메시지 관리용 파일을 만들고
+
+item=상품
+item.id=상품 ID
+item.itemName=상품명
+itemm.price= 가격
+item.quantity=수량
+
+각 html 파일들은 다음과 같이 해당 데이터를 key값으로 불러서 사용하는 것이다.
+
+addForm.html
+<label for="itemName" th:text="#(item.itemName)"></label>HTML label 태그
+
+editForm.html
+
+<label for="itemName" th:text="#(item.itemName)"></label>
+
+[스프링 메시지 소스설정]
+메시지 관리 기능을 사용하려면 스프링이 제공하는 MessageSource를 스프링 빈으로
+등록하면 되는데 MessageSource는 인터페이스이다. 따라서 구현체인
+ResourceBundleMessageSource를 스프링 빈으로 등록하면 된다.
+
+직접등록
+@Bean
+public MessageSource messageSource() {
+ ResourceBundleMessageSource messageSource = new
+ResourceBundleMessageSource();
+ messageSource.setBasenames("messages", "errors");
+ messageSource.setDefaultEncoding("utf-8");
+ return messageSource;
+}
+
+스프링 부트
+스프링 부트를 사용하면 스프링 부트가 MessageSource를 자동으로 스프링 빈으로
+등록한다. application.properteis파일에 등록
+spring.message.basename=messages,config.i18n.messages
+
+
+messages.properties
+hello=안녕
+hello.name=안녕 {0}
+
+messages_en.properties
+hello=hello
+hello.name=hello {0}
+
+[스프링 메시지 소스사용]
+
+String getMessage(String code, @Nullable Object[] args,@Nullable String
+defaultMessage ,Locale locale);
+
+String getMessage(String code, @Nullable Object[] args, Locale locale) throws
+NoSuchMessageException;
+
+MessageSource인터페이스를 보면 코드를 포함한 일부 파라미터로 메시지를 읽어오는
+기능을 제공한다. 
+
+@Test
+ void helloMessage() {
+ String result = ms.getMessage("hello", null, null);
+ assertThat(result).isEqualTo("안녕");
+ }
+}
+
+가장 단순한 테스트는 메시지 코드로 hello를 입력하고 나머지 값을 null을
+입력하였다 locale정보가 없으면 basename 에서 설정한 기본 이름 메시지 파일을
+조회한다. basename으로 messages를 지정했으므로 message.properteis파일에서
+데이터가 조회된다.
+
+messages.properties
+hello=안녕
+hello.name=안녕 {0}
+
+messages_en.properties
+hello=hello
+hello.name=hello {0}
+
+
+void notFoundMessageCode() {
+ assertThatThrownBy(() -> ms.getMessage("no_code", null, null))
+ .isInstanceOf(NoSuchMessageException.class);
+}
+
+@Test
+void notFoundMessageCodeDefaultMessage() {
+ String result = ms.getMessage("no_code", null, "기본 메시지", null);
+ assertThat(result).isEqualTo("기본 메시지");
+}
+
+MessageSourceTest 추가 - 매개변수 사용
+@Test
+void argumentMessage() {
+ String result = ms.getMessage("hello.name", new Object[]{"Spring"}, null);
+ assertThat(result).isEqualTo("안녕 Spring");
+}
+
+
+[웹 애플리케이션에 메시지 적용하기]
+messages.properties
+label.item=상품
+label.item.id=상품 ID
+label.item.itemName=상품명
+label.item.price=가격
+label.item.quantity=수량
+page.items=상품 목록
+page.item=상품 상세
+page.addItem=상품 등록
+page.updateItem=상품 수정
+button.save=저장
+button.cancel=취소
+
+타임리프 메시지 적용
+타임리프의 메시지 표현식 #(...)를 사용하면 스프링의 메시지 관리를 편리하게
+사용이 가능하다. 예를 들어서 방금 등록한 상품이라는 이름을 조회하려면 
+#{label.item}이라고 하면된다.
+
+<div th:text="#{label.item}"></div>
+
+페이지 이름에 적용
+<h2 th:text="#{page.addItem}">상품등록</h2>
+
+레이블에 적용
+<label for="itemName">상품명</label>
+<label for="itemName" th:text="#{label.item.itemName}">상품명</label>
+<label for="price" th:text="#{label.item.price}">가격</label>
+<label for="quantity" th:text="#{label.item.quantity}">수량</label>
+
+버튼에 적용
+<button type="submit">상품 등록</button>
+<button type="submit" th:text="#{button.save}">저장</button>
+<button type="button" th:text="#{button.cancel}">취소</button>
+
+
+
+
+
+[label]
+<label> 태그는 <input> 태그를 도와주는 역할입니다. <input> 태그가 디자인 하기 힘들 때 <label> 태그로 연결해서 쉽게 디자인하거나 클릭 편의성을 높일 수 있습니다.
+
+label for 사용법
+<label> 태그는 for 속성을 사용해서 <input> 태그의 id 속성에 연계해서 사용합니다.
+label의 for값과 input의 id값을 일치시키면 됩니다.<label> 태그의 for 값이 baboya
+이고, <input> 태그의 id 값이 baboya로 동일해졌습니다
+
+<label for="baboya">하하하</label>
+<input type="text" id="baboya">

@@ -1,0 +1,78 @@
+[스프링 mvc시작하기]
+ModelAndView 모델과 뷰 정보를 담아서 반환한다.
+
+@Controller
+public class SpringMemberFormControllerV1 {
+ @RequestMapping("/springmvc/v1/members/new-form")
+ public ModelAndView process() {
+ return new ModelAndView("new-form");
+ }
+}
+
+Model파라미터
+save(), members()를 보면 Model을 파라미터로 받는것을 볼수가 있다. 스프링 
+MVC도 이런 편의 기능을 제공한다.
+
+@RequestParam사용
+스프링은 http요청 파라미터를 @RequestParam으로 받을수 있다.
+@RequestParam('username')는 request.getParameter("username") 과 같은 코드이다.
+
+@RestController
+ @Controller는 반환 값이 String이면 뷰 이름으로 인식된다 그래서 뷰를 찾고 렌더링
+ 이 된다. @RestController는 반환값으로 뷰를 찾는 것이 아니라 Http메시지 바디에
+ 바로 입력한다. 따라서 실행결과로 ok를 받을수가 있다. 
+ 
+[요청 매핑]
+
+경로변수사용
+
+@GetMapping("/mapping/{userId}")
+public String mappingPath(@PathVariable("userId") String data) {
+ log.info("mappingPath userId={}", data);
+ return "ok";
+}
+
+실행 
+http://localhost:8080/mapping/userA
+
+최근 HTTP API 는 다음과 같이 리소스 경로에 식별자를 넣는 스타일을 선호한다.
+
+
+@GetMapping("/mapping/users/{userId}/orders/{orderId}")
+public String mappingPath(@PathVariable String userId, @PathVariable Long
+orderId) {
+ log.info("mappingPath userId={}, orderId={}", userId, orderId);
+ return "ok";
+}
+
+실행
+http://localhost:8080/mapping/users/userA/orders/100
+
+
+@ResponseBody
+@PostMapping("/request-body-string-v4")
+public String requestBodyStringV4(@RequestBody String messageBody) {
+ log.info("messageBody={}", messageBody);
+ return "ok";
+}
+
+@RequestBody
+@RequestBody 를 사용하면 HTTP 메시지 바디 정보를 편리하게 조회할 수 있다.
+참고로 헤더 정보가 필요하다면 HttpEntity 를 사용하거나 @RequestHeader 를
+사용하면 된다.이렇게 메시지 바디를 직접 조회하는 기능은 요청 파라미터를 조회하는 @RequestParam @ModelAttribute 와는 전혀 관계가 없다
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

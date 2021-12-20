@@ -1,0 +1,344 @@
+[로그인]
+
+회원가입 데이터
+
+@Data
+public class Member {
+ private Long id;
+ 
+ @NotEmpty
+ private String loginId; //로그인 ID
+ 
+ @NotEmpty
+ private String name; //사용자 이름
+ 
+ @NotEmpty
+ private String password;
+}
+
+저장 리포지토리
+public class MemberRepository{
+	
+	private static Map<Long,Member> store=new HashMap<>();
+	private static long sequence=0L;
+	
+	public Member save(Member member){
+		member.setId(++sequence);
+		store.put(member.getId(),member);
+		return member;
+	}
+	public Member findById(Long id){
+		return store.get(id);
+	}
+	
+	public Optional<Member> findByLoginId(String loginId) {
+		return findAll().stream()
+			.filter(m -> m.getLoginId().equals(loginId))
+			.findFirst();
+ }
+		public List<Member> findAll() {
+			return new ArrayList<>(store.values());
+ }
+			public void clearStore() {
+				store.clear();
+ }
+	
+}
+
+컨트롤러
+
+@Controller
+@RequiredArgsConstructor
+@RequestMapping("/members")
+public class MemberController {
+ private final MemberRepository memberRepository;
+ 
+ @GetMapping("/add")
+ public String addForm(@ModelAttribute("member") Member member) {
+ return "members/addMemberForm";
+ }
+ 
+ @PostMapping("/add")
+ public String save(@Valid @ModelAttribute Member member, BindingResult
+result) {
+	
+	if (result.hasErrors()) {
+		return "members/addMemberForm";
+ }
+	memberRepository.save(member);
+			return "redirect:/";
+ }
+}
+
+[로그인]
+
+
+public Member login(String loginId, String password) {
+	return memberRepository.findByLoginId(loginId)
+				.filter(m -> m.getPassword().equals(password))
+				.orElse(null);
+ }
+
+로그인의 핵심 비즈니스 로직은 회원을 조회한 다음에 파라미터로 넘어온 password
+와 비교해서 같으면 회원을 반환하고 만약 password가 다르면 null을 반환한다.
+
+로그인 폼
+@Data
+public class LoginForm {
+ @NotEmpty
+ private String loginId;
+ @NotEmpty
+ private String password;
+}
+
+
+@PostMapping("/login")
+ public String login(@Valid @ModelAttribute LoginForm form, BindingResult
+bindingResult) {
+ if (bindingResult.hasErrors()) {
+ return "login/loginForm";
+ }
+ Member loginMember = loginService.login(form.getLoginId(),
+form.getPassword());
+ log.info("login? {}", loginMember);
+ if (loginMember == null) {
+ bindingResult.reject("loginFail", "아이디 또는 비밀번호가 맞지 않습니다.");
+ return "login/loginForm";
+ }
+ //로그인 성공 처리 TODO
+ return "redirect:/";
+ }
+ 
+로그인 컨트롤러는 로그인 서비스를 호출해서 로그인에 성공하면 홈 화면으로
+이동하고 로그인에 실패하면 bindingResult.reject()를 사용해서 글로벌 오류를
+발생시킨다  그리고 정보를 다시 입력하도록 로그인 폼을 뷰 템플릿으로 사용한다.
+
+[로그인 처리하기 쿠키사용]
+
+서버에서 로그인에 성공하면 http 응답에 쿠키를 담아서 브라우저에 전달하자 
+그러면 브라우저는 앞으로 해당 쿠키를 지속해서 보내준다.
+
+쿠키에는 영속 쿠키와 세션 쿠키가 있다.
+영속쿠키:만료날짜를 입력하면 해당 날짜까지 유지
+세견쿠키:만료 날짜를 생략하면 브라우저 종료시 까지만 유지
+
+브라우저 종료시 로그아웃이 되길 기대하므로 우리에게 필요한것은 세션쿠키이다.
+
+
+@PostMapping("/login")
+public String login(@Valid @ModelAttribute LoginForm form ,BindingResult 
+bindingResult, HttpServlerResponse response){
+	
+	if (bindingResult.hasErrors()){
+		return "login/loginForm";
+	}
+	
+Member loginMember=loginService.login(form.getLoginId(),form.getPassword());
+log.info("login? {}",loginMember)
+
+	if (loginMember==null){
+		bindingResult.reject("loginFail","아이디또는 비밀번호가 틀림");
+		return "login/loginForm";
+	}
+	
+	//로그인 성공처리
+Cookie idCookie=new Cookie("memberid",String.valueof(loginMember.getId()));
+  response.addCookie(idCookie);
+  
+  return "redirect:/";
+
+}
+
+	쿠키생성 로직
+	
+	Cookie idCookie=new Cookie("memberId",String.valueof(loginMember.getId));
+	response.addCookie("idCookie");
+	
+로그인에 성공하면 쿠키를 생성하고 HttpServlerResponse에 담는다 쿠키 이름은
+memberId이고 값은 회원의 id를 담는다 웹 브라우저는 종료 전까지 회원의 id를 
+서버에 계속 보내줄것이다.
+
+그리고 로그인시 쿠키를 확인하는 로직은
+ @GetMapping("/")
+ public String homeLogin(
+ @CookieValue(name = "memberId", required = false) Long memberId,
+Model model) {
+ if (memberId == null) {
+ return "home";
+ }
+ //로그인
+ Member loginMember = memberRepository.findById(memberId);
+ if (loginMember == null) {
+ return "home";
+ }
+ model.addAttribute("member", loginMember);
+ return "loginHome";
+ }
+
+
+[로그아웃기능]
+@PostMappint("/logout")
+public String logout(HttpServlerResponse response){
+	expire(response,"memberId");
+	return "redirect:/";
+}
+private void expire(HttpServlerResponse response,String cookieName){
+	Cookie cookie=new Cookie(cookieName,null);
+	cookie.setMaxAge(0);
+	response.addCookie(cookie);
+}
+
+
+
+[로그인 처리하기-세션동작 방식]
+
+세션동작방식
+중요한 정보는 서버에저장 클라이언트와 서버에는 임의의 식별자가 있어야한다.
+이 방법이 세션이다.  개념을 이해해보자
+
+id 비밀번호 생성 ->서버에 날라감 
+uuid생성 생성된 세션 id와 세션에 보관할 (memberA)을 서버의 세션 저장소에 보관
+ 
+클라이언트와 서버는 결국 쿠키로 연결이 되어야한다.
+서버는 클라이언트에 mySessionId라는 이름으로 세션 id만 쿠키에 담아서 전달
+클라이언트는 쿠키저장소에 mySessionId쿠키를 보관
+
+중요
+여기서 중요한 포인트는 회원과 관련된 정보는 전혀 클라에 전달안함
+오직 추정 불가능한 세션ID만 쿠키를 통해 클라에 전달한다.
+
+클라이언트의 세션ID 쿠키전달
+클라이언트는 요청시 항상 mySessionId쿠키를 전달한다.
+서버에서는 클라이언트가 전달한 mySessionId쿠키 정보로 세션 저장소를 조회해서
+로그인시 보관한 세션정보를 사용한다.
+
+[로그인 처리하기-서블릿HTTP세션]
+
+HttpSession소개
+서블리이 제공하는 HttpSession도 결국 우리가 직접만든 SessionManager와 같은
+방식으로 동작한다 서블릿을 통해 HttpSession을 생성하면 다음과 같은 쿠키를
+생성한다. 쿠키이름이 JESSIONID이고 값은 추정 불가능한 랜덤 값이다.
+
+public class SessionConst{
+	public static final String LOGIN_MEMBER="loginMember";
+}
+
+HttpSession에 데이터를 보관하고 조회할 때 ,같은 이름이 중복되어 사용되므로
+상수를 하나정의하자
+
+@PostMapping("/login")
+public String loginV3(@Valid @ModelAttribute LoginForm form,
+BindingResult bindingResult,HttpServletRequest request){
+	if (bindingResult.hasErrors()){
+		return "login/loginForm";
+	}
+	Member loginMember=loginService.login(form.getLoginId(()) ,
+	form.getPassword());
+	
+	log.info("login {}",loginMember);
+	
+	if (loginMember==null){
+		bindingResult.reject("loginFail","아이디 비번 틀림");
+		return "login/loginForm"
+	}
+	
+	//로그인 성공처리
+	
+	HttpSession session=request.getSession();
+	
+	session.setAttribute(SessionConst.LOGIN_MEMBER,loginMember);
+	return "redirect:/";
+
+}
+
+세션 생성과 조회
+
+세션을 생성하려면 request.getSession(true)을 사용하면된다.
+
+request.getSession(true)
+세션이 있으면 기존 세션을 반환
+세션이 없으면 새로운 세션을 생성해서 반환
+
+request.getSession(false)
+세션이 있으면 기존 세션을 반환
+세션이 없으면 새로운 세션 생성안함 null을 반환
+
+세션에 로그인 회원정보 보관
+session.setAttribute(SessionConst.LOGIN_MEMBER,loginMember);
+세션에 데이터를 보관하는 방법이다.
+
+그리고 로그아웃을 하면은
+@PostMapping("/logout")
+public String logout3(HttpServletRequest request){
+	HttpSession session=request.getSession(false);
+	if (session!=null){ //세션에 값이있으면 세션끊음
+		session.invalidate();
+	}
+	return "redirect:/"
+}
+
+
+@GetMapping("/")
+public String homeLoginV3(HttpServletRequest request,Model model){
+	HttpSession session=request.getSession(false);
+	if (session==null){
+		return "home";
+	}
+	Member loginMember=(Member)session.getAttribute(Session.LOGIN_MEMBER);
+	
+	if (loginMember==null){
+		return "home";
+	}
+
+	model.addAttribute("member",loginMember);
+	return "loginHome";
+	}
+
+[로그인 처리하기 서블릿HTTP세션2]
+@SessionAttribute 
+스프링은 세션을 더 편리하게 사용하도록 @SessionAttribute를 지원한다
+
+이미 로그인된 사용자를 찾을떄는 다음과 같이 사용하면 된다. 참고로 이기능은
+세션생성은 하지 않는다.
+
+
+@GetMapping("/")
+public String homeLoginV3Spring(@SessionAttribute(name=Session.LOGIN_MEMBER,
+required=false)Member loginMember,Model model){
+
+if (loginMember == null) {
+ return "home";
+ }
+ //세션이 유지되면 로그인으로 이동
+ model.addAttribute("member", loginMember);
+ return "loginHome";
+ 
+}
+
+이것은 웹브라우저가 쿠키를 지원하지 않을 때 쿠키 대신 URL을 통해서 세션을
+유지하는 방법이다. 이 방법을 사용하려면  URL에 이값을 계속 포함해서 전달을
+해야한다. 타임리프 같은 템플릿 엔진을 통해서 링크를 걸면 jessionid를 URL에 
+자동으로 포함해준다 서버 입장에서 웹 브라우저가 쿠키를 지원하는지 최초에는
+판단하지 못하므로 쿠키값도 전달하고 url에 jessionid도 함께 전달을 한다.
+
+URL 전달 방식을 끄고 항상 쿠키를 통해서만 세션을 유지하고 싶으면 다음 옵션을넣어주면 된다. 이렇게 하면 URL에 jsessionid 가 노출되지 않는다.
+
+application.properties
+
+server.servlet.session.tracking-modes=cookie
+
+[세션 정보와 타임아웃 설정]
+
+
+
+
+
+
+
+
+
+
+
+
+
+

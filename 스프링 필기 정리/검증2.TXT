@@ -1,0 +1,277 @@
+[Bean Validation소개]
+검증 기능을 지금처럼 매번 코드로 작성하는것은 상당히 번거롭다 특히 특정 필드에
+대한 검증 로직은 대부분 빈 값인지 아닌지 특정 크기를 넘는지 아닌지와 같이 매우
+일반적인 로직이다 밑에 로직을 보자 
+
+public class Item {
+ private Long id;
+ 
+ @NotBlank//공백불가
+ private String itemName; 
+ 
+ @NotNull//null이면 안됨
+ @Range(min = 1000, max = 1000000)
+ private Integer price;
+ 
+ @NotNull//null이면안됨
+ @Max(9999)
+ private Integer quantity;
+ //...
+}
+
+[Bean Validation 시작]
+Bean Validation기능을 어떻게 사용하는지 코드로 알아보자 먼저 스프링과 통합하지
+않고 순수한 Bean Validation사용법 부터 테스트 코드로 알아보자
+
+의존관계 추가!
+
+build.gradle
+implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+테스트 코드 작성 
+@Data
+public class Item {
+ private Long id;
+ @NotBlank
+ private String itemName;
+ @NotNull
+ @Range(min = 1000, max = 1000000)
+ private Integer price;
+ @NotNull
+ @Max(9999)
+ private Integer quantity;
+ public Item() {
+ }
+ public Item(String itemName, Integer price, Integer quantity) {
+ this.itemName = itemName;
+ this.price = price;
+ this.quantity = quantity;
+ }
+}
+@NotBlank 빈값+공백만 있는 경우를 허용X
+@NotNull null을 허용 안함
+@Range(min=1000,max=100000)범위안의 값이어야 한다.
+@Max(9999) : 최대 9999까지만 허용한다.
+
+[Bean validation 스프링 적용]
+
+
+@PostMapping("/add")
+ public String addItem(@Validated @ModelAttribute Item item, BindingResult
+bindingResult, RedirectAttributes redirectAttributes) {
+	
+ if (bindingResult.hasErrors()) {
+ log.info("errors={}", bindingResult);
+ 
+ return "validation/v3/addForm";
+ }
+
+
+코드 제거
+기존에 등록한 ItemValidator를 제거해두자! 오류 검증기가 중복 적용된다.
+private final ItemValidator itemValidator;
+@InitBinder
+public void init(WebDataBinder dataBinder) {
+ log.info("init binder {}", dataBinder);
+ dataBinder.addValidators(itemValidator);
+}
+
+스프링 mvc는 어떻게 Bean Validation을 사용할까?
+스프링 부트가 spring-boot-starter-validation 라이브러리를 넣으면 자동으로 
+Bean Validator를인지하고 스프링에 통합한다.
+
+스프링 부트는 자동으로 글로벌 Validator로 등록한다.
+LocalValidatorFactoryBean 을 글로벌 Validator로 등록한다. 이 Validator는 @NotNull 같은애노테이션을 보고 검증을 수행한다. 이렇게 글로벌 Validator가
+적용되어 있기 때문에, @Valid ,@Validated 만 적용하면 된다.
+검증 오류가 발생하면, FieldError , ObjectError 를 생성해서 BindingResult 에 담아준다.
+
+
+@Validated 는 스프링 전용 검증 애노테이션이고, @Valid 는 자바 표준 검증
+애노테이션이다. 둘중 아무거나 사용해도 동일하게 작동하지만, @Validated 는 
+내부에 groups 라는 기능을 포함하고 있다. 이부분은 조금 뒤에 다시 설명하겠다.
+
+검증순서
+1.@ModelAttribute 각각의 필드에 타입변환 시도 
+성공하면 다음으로 실패하면 typeMisMath로 FieldError추가
+2.Validator 적용
+
+예)
+itemName 에 문자 "A" 입력 타입 변환 성공 itemName 필드에 BeanValidation 적용
+price 에 문자 "A" 입력 "A"를 숫자 타입 변환 시도 실패 typeMismatch FieldError추가price 필드는 BeanValidation 적용 X
+
+[Bean Validation 에러코드]
+
+Bean Validation이 기본으로 제공하는 오류 메시지를 좀 더 자세히 변경하고 싶으면
+어떻게 하면 될까? Bean Validation을 적용하고 bindingResult에 등록된 검증 
+오류 코드를 보자 오류코드가 애노테이션 이름으로 등록된다. 
+
+@NotBlank
+NotBlank.item.itemName
+NotBlank.itemName
+NotBlank.java.lang.String
+NotBlank
+@Range
+Range.item.price
+Range.price
+Range.java.lang.Integer
+Range
+
+이제 메시지를 등록하자
+errors.properties
+
+NotBlank={0} 공백 x
+Range={0},{2}~{1} 허용
+Max= {0},최대 {1}
+
+
+애노테이션의 message 사용 예
+@NotBlank(message = "공백은 입력할 수 없습니다.")
+
+BeanValidation 메시지 찾는 순서
+1. 생성된 메시지 코드 순서대로 messageSource 에서 메시지 찾기
+2. 애노테이션의 message 속성 사용 @NotBlank(message = "공백! {0}")
+3. 라이브러리가 제공하는 기본 값 사용 공백일 수 없습니다.
+
+[Bean Validation - 오브젝트 오류]
+
+Bean Validation에서 특정 필드 FieldError가 아닌 해당 오브젝트 관련 오류는
+어떻게 처리할까?
+
+@PostMapping("/add")
+public String addItem(@Validated @ModelAttribute Item item, BindingResult
+bindingResult, RedirectAttributes redirectAttributes) {
+	
+if (item.getPrice() != null && item.getQuantity() != null) {
+ int resultPrice = item.getPrice() * item.getQuantity();
+ if (resultPrice < 10000) {
+ bindingResult.reject("totalPriceMin", new Object[]{10000,
+resultPrice}, null);
+ }
+ }
+
+if (bindingResult.hasErrors()) {
+ log.info("errors={}", bindingResult);
+ return "validation/v3/addForm";
+ }
+ //성공 로직
+ Item savedItem = itemRepository.save(item);
+ redirectAttributes.addAttribute("itemId", savedItem.getId());
+ redirectAttributes.addAttribute("status", true);
+ return "redirect:/validation/v3/items/{itemId}";
+}
+
+에러메시지 적용방법
+1.메시지 코드 생성 errors.properties 같은것
+2.item필드에다가 @NotBlank같은거 생성
+3.컨트롤러에다가 @Validated생성 BindingResult생성
+4.bindingResult.rejectvalue()// 오브젝트에러,bindingResult.reject()//필드에러
+
+bindingResult.reject("totalPriceMin",new Object[]{10000,resultPrice},null); 
+ }
+
+[Form 전송 객체 분리 - 소개]
+등록시 폼에서 전달하는 데이터가 Item도메인 객체와 딱 맞지 않는다 
+그래서 보통 Item 을 직접 전달받는것이 아니라 복잡한 폼의 데이터를 컨트롤러까지
+전달할 별도의 객체를 만들어서 전달한다 예를 들면 ItemSaveForm이라는 폼을
+전달 받는 전용 객체를 만들어서 @ModelAttribute로 사용한다 이것을 통해
+컨트롤러에서 폼 데이터를 전달 받고 이후 컨트롤러에서 필요한 데이터를 사용해서
+Item을 생성한다.
+
+
+[Form 전송 객체 분리 개발]
+
+Item저장용 폼
+
+@Data
+public class ItemSaveForm {
+ @NotBlank
+ private String itemName;
+ @NotNull
+ @Range(min = 1000, max = 1000000)
+ private Integer price;
+ @NotNull
+ @Max(value = 9999)
+ private Integer quantity;
+}
+
+Item 수정용 폼
+@Data
+public class ItemUpdateForm {
+ @NotNull
+ private Long id;
+ 
+ @NotBlank
+ private String itemName;
+ 
+ @NotNull
+ @Range(min = 1000, max = 1000000)
+ private Integer price;
+ 
+ //수정에서는 수량은 자유롭게 변경할 수 있다.
+ private Integer quantity;
+}
+
+
+@PostMapping("/add")
+ public String addItem(@Validated @ModelAttribute("item") ItemSaveForm form,
+BindingResult bindingResult, RedirectAttributes redirectAttributes) {
+ //특정 필드 예외가 아닌 전체 예외
+ if (form.getPrice() != null && form.getQuantity() != null) {
+ int resultPrice = form.getPrice() * form.getQuantity();
+ if (resultPrice < 10000) {
+ bindingResult.reject("totalPriceMin", new Object[]{10000,
+resultPrice}, null);
+ }
+ }
+ if (bindingResult.hasErrors()) {
+ log.info("errors={}", bindingResult);
+ return "validation/v4/addForm";
+ }
+ 
+ //성공 로직
+ Item item = new Item();
+ item.setItemName(form.getItemName());
+ item.setPrice(form.getPrice());
+ item.setQuantity(form.getQuantity());
+
+@PostMapping("/{itemId}/edit")
+ public String edit(@PathVariable Long itemId, @Validated
+@ModelAttribute("item") ItemUpdateForm form, BindingResult bindingResult) {
+ //특정 필드 예외가 아닌 전체 예외
+ if (form.getPrice() != null && form.getQuantity() != null) {
+ int resultPrice = form.getPrice() * form.getQuantity();
+ if (resultPrice < 10000) {
+ bindingResult.reject("totalPriceMin", new Object[]{10000,
+resultPrice}, null);
+ }
+ }
+ if (bindingResult.hasErrors()) {
+ log.info("errors={}", bindingResult);
+ return "validation/v4/editForm";
+ }
+ Item itemParam = new Item();
+ itemParam.setItemName(form.getItemName());
+ itemParam.setPrice(form.getPrice());
+ itemParam.setQuantity(form.getQuantity());
+ itemRepository.update(itemId, itemParam);
+ return "redirect:/validation/v4/items/{itemId}";
+ }
+
+[Bean Validation Http메시지 컨버터]
+
+@ModelAttribute는 Http요청 파라미터를 다룰떄 사용한다. @RequestBody는 
+Http body의 데이터를 객체로 변환할때 사용한다 주로 API JSON요청을 다룰떄 사용
+
+
+
+
+
+
+
+
+
+
+
+
+
+

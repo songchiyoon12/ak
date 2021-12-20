@@ -1,0 +1,215 @@
+[파일 업로드]
+
+일반적으로 사용하는 html form을 통한 파일 업로드를 이해하려면 먼저 폼을 전송하는
+다음 두가지 방식의 차이를 이해해야한다.
+
+HTML 폼 전송 방식
+application/x-www-form-urlencoded
+multipart/form-data
+
+파일을 업로드하려면 파일은 문자가 아니라 바이너리 데이터를 전송해야한다. 문자를 
+전송하는 이방식으로 파일을 전송하기는 쉽지 않다 그리고 또 한가지 문제가 더 있는데
+보통 폼을 전송할 떄 파일만 전송하는 것이 아니라는 점이다.
+
+다음 예를 보자
+- 이름
+- 나이
+- 첨부파일
+여기에서 이름과 나이도 전송해야하고 첨부파일도 함께 전송해야한다. 문제는 이름과
+나이는 문자로 전송하고 첨부파일은 바이너리로 전송해야 한다는 점이다 여기에서
+문제가 발생한다 문자와 바이너리를 동시에 전송해야 하는 상황이다.
+
+이문제를 해결하기 위해서 HTTP는 multipart/form-data라는 전송 방식을 제공한다.
+<form action="/save" method="post"  multipart/form-data>
+<input type="text" name="username"/>
+<input type="text" name="age"/>
+<input type="file" name="file1"/>
+<button type="submit">전송</button>
+이방식을 사용하려면 form태그에 별도의  multipart/form-data를 지정해야 한다.
+
+ multipart/form-data방식은 다른 종류의 여라 파일과 폼의 내용 함께 전송할수있다.
+ 
+ 
+ 
+ [서브릿과 파일업로드1]
+ 먼저 서블릿을 통한 파일 업로드를 코드와 함께 알아보자.
+ 
+ @PostMapping("/upload")
+ public String saveFile1(HttpServletRequest request)throws ServletException,
+ IOException{
+ 	
+ 	log.info("request={}",request);
+ 	String itemName=request.getParameter("itemName");
+ 	log.info("itemName={},itemName");
+ 	Collection<Part> parts=request.getParts();
+ 	log.info("parts={}",parts);
+ 	
+ 	return "upload-form";
+ }
+ 
+ 
+ request.getParts():multipart/form-data전송 방식에서 각각 나누어진 부분을
+ 받아서 확인이 가능하다.
+ 
+ 
+ <!DOCTYPE HTML>
+ 
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+ <meta charset="utf-8">
+</head>
+<body>
+<div class="container">
+ <div class="py-5 text-center">
+ <h2>상품 등록 폼</h2>
+ </div>
+ <h4 class="mb-3">상품 입력</h4>
+ <form th:action method="post" enctype="multipart/form-data">
+ <ul>
+ <li>상품명 <input type="text" name="itemName"></li>
+ <li>파일<input type="file" name="file" ></li>
+ </ul>
+ <input type="submit"/>
+ </form>
+</div> <!-- /container -->
+</body>
+</html>
+
+ 
+ 
+테스트를 진행하기 전에 먼저 다음 옵션들을 추가하자. 이 옵션을 사용하면 HTTP 요청 메시지를 확인할 수 있다
+
+application.properties
+logging.level.org.apache.coyote.http11=debug
+ 
+실행해보면 logging.level.org.apache.coyote.http11 옵션을 통한 
+로그에서 multipart/formdata 방식으로 전송된 것을 확인할 수 있다.
+
+
+ 
+업로드 사이즈 제한
+spring.servlet.multipart.max-file-size=1MB
+spring.servlet.multipart.max-request-size=10MB
+ 
+spring.servlet.multipart.enabled 끄기
+spring.servlet.multipart.enabled 옵션을 끄면 서블릿 컨테이너는 
+멀티파트와 관련된 처리를 하지 않는다.
+spring.servlet.multipart.enabled=false
+ 
+ 
+spring.servlet.multipart.enabled 켜기
+spring.servlet.multipart.enabled=true (기본 true)
+이 옵션을 켜면 스프링 부트는 서블릿 컨테이너에게 멀티파트 데이터를 처리하라고
+설정한다. 참고로 기본값은 true 이다.
+ 
+ [서블릿과 파일 업로드2]
+ 서블릿이 제공하는 part에 대해 알아보고 실제 파일도 서버에 업로드 해보자
+ 먼저 파일을 업로드 하려면 실제 파일이 저장되는 경로가 필요하다.
+ 
+ application.properties
+ file.dir=/Users/kimyounghan/study/file/
+ 파일이 저장되는 경로 
+ 
+ [스프링과 파일 업로드]
+ 
+ 스프링은 MultipartFile 이라는 인터페이스로 멀티파트 파일을 매우 
+ 편리하게 지원한다.
+ 
+ @Slf4j
+ @Controller
+ @RequestMapping("/spring")
+ 
+ public class SpringUploadController {
+	@Value("${file.dir}")
+	private String fileDir;
+	
+	@GetMapping("/upload")
+	public String newFile() {
+	return "upload-form";
+	}
+	
+	@PostMapping("/upload")
+	public String saveFile(@RequestParam String itemName,
+						   @RequestParam MultipartFile file,						    HttpServletRequest request) throws IOException {
+						   	
+	log.info("request={}",request);
+	log.info("itemName={}",itemName);
+	log.info("multipartFile={}",file);
+	
+	if(!file.isEmpty()){
+		String fullPath=fileDir+file.getOriginalFilename();//업로드 파일명
+		log.info("파일저장 fullPath={} ",fullPath);
+		file.transferTo(new File(fullPath));//파일저장 
+		
+	}
+	return  "upload-form";
+	
+}
+}
+
+
+[예제로 구현하는 파일 업로드 다운로드]
+실제 파일이나 이미지를 업로드 다운로드 할떄는 몇가지 고려할점이 있는데
+구체적이 예제로는
+
+요구사항
+상품을관리
+	상품이름
+	첨부파일하나
+	이미지 파일 여러개
+첨부파일을 업로드 다운로드 할수있다.
+업로드한 이미지를 웹 브라우저에서 확인이 가능하다.
+
+상품 도메인
+@Data
+public class Item {
+ private Long id;
+ private String itemName;
+ private UploadFile attachFile;
+ private List<UploadFile> imageFiles;
+}
+
+아이템 저장소
+@Repository
+public class ItemRepository {
+ private final Map<Long, Item> store = new HashMap<>();
+ private long sequence = 0L;
+ public Item save(Item item) {
+ item.setId(++sequence);
+ store.put(item.getId(), item);
+ return item;
+ }
+ public Item findById(Long id) {
+ return store.get(id);
+ }
+}
+
+업로드파일 정보보관
+@Data
+public class UploadFile {
+ private String uploadFileName;
+ private String storeFileName;
+ public UploadFile(String uploadFileName, String storeFileName) {
+ this.uploadFileName = uploadFileName;
+ this.storeFileName = storeFileName;
+ }
+}
+
+uploadFileName : 고객이 업로드한 파일명
+storeFileName : 서버 내부에서 관리하는 파일명
+
+
+고객이 업로드한 파일명으로 서버 내부에 파일을 저장하면 안된다. 왜냐하면 서로다른 고객이 같은파일이름을 업로드 하는 경우 기존 파일 이름과 충돌이 날 수 있다. 서버에서는 저장할 파일명이 겹치지않도록 내부에서 관리하는 별도의 파일명이
+필요하다.
+
+파일저장은 경로+파일이름 이렇게 저장한다.
+
+lastIndexOf는 오른쪽부터 문자열을 세기때문에 파일 확장자 같은것에 사용된다.
+왼쪽에서 몇번째 위치하는지를 인덱스로 반환한다. 
+String indexOfTestOne = "Hello world"; System.out.println( indexOfTestOne.lastIndexOf("o") ); // 7
+마지막으로 *문자가 존재하는 위치의 인덱스 값( 중복일 경우 제일 마지막번호)
+String.substring(start) //문자열  start위치부터 끝까지 문자열 자르기
+
+
+
+

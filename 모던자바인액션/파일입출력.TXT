@@ -1,0 +1,187 @@
+[아이오]
+
+I/O는 우리가 만든 프로그램에 있는 내용을 1.파일에 읽거나 저장하거나 2.다른 서버나 디바이스로 보낼떄
+사용한다. 즉 I는 INPUT O는 Output이다 입력과 출력을 통칭하는 의미로 I/O라고 부른다 I/O는 JVM기준으로
+
+파일을 읽을때에는 Input
+파일을 쓰거나 외부로 전송할떄에네는 Output 을 사용한다. 여기서 Input과 Output은 JVM기준이다.
+
+바이트 기반의 데이터를 처리하기 위해서는 여러 종류의 스트림이라는 클래스를 제공한다. 
+읽는 작업은 InputStream 쓰는 작업은 OutputStream을 사용한다. 바이트가 아닌 
+
+char기반의 문자열로만 되어 있는 파일은 Reader ,Writer라는 클래스로 처리한다. 이름에서 알수있듯이
+읽을떄에는 Reader 쓸때는 Writer을 사용한다. 
+
+[File,Files클래스]
+
+File라는 클래스가 있다. 이 클래스의 이름은 File이지만 정확하게는 파일만 가리키는 것이 아니라 파일의
+경로 path 정보도 포함한다. File클래스는 정체가 불분명하고 심볼릭 링크와 같은 유닉스 계열의 파일에서 제공하는
+몇몇 기능을 제공하지 못한다. 그래서 NIO2가 등장하면서 Files클래스를 사용한다. File클래스는 객체를 생성하여
+데이터를 처리하는데 반해 Files클래스는 모든 메소드가 static으로 선언되어 있기 떄문에 별도의 객체 생성이 불필요하다.
+
+[파일 생성자]
+
+File(File parent ,String child)
+이미 생성되어 있는 file객체와 그 경로 이름으로 새로운 file객체생성
+
+File(String pathname)
+지정한 경로 이름으로 file객체생성 
+
+
+public class FileSample {
+    public static void main(String[]args) {
+        FileSample sample = new FileSample();
+        String dir = "C:\\godofjava\\text";
+        sample.chcekPath(dir);
+    }
+    private void chcekPath(String dir) {
+        File file=new File(dir);
+        System.out.println(dir+"is exists?="+file.exists());
+    }
+
+}
+
+
+보통 윈도우에서는 역슬래시를 한번만 사용핮디만 자바에서는 String안에 역슬래시를 한번만 쓰면 그 뒤에 있는 단어에 따라서
+미리 약속한 특수한 기호로 인식한다 따라서 \\을 연달아 사용한다. 
+
+이렇게 존재하지 않는 File클래스를 사용하여 만들려면 mkdir()이나 mkdirs()를 사용하여야한다. 
+mkdir(),mkdirs()의 차이는 단 하나다 mkdir()메소드는 디렉터리를 하나만 만들고 mkdirs() 메서드는 여러 개의 하위 디렉터리를 만든다.
+예를 들어 C:godofjava라는 경로만 존재할경우 C:godofjava\text1\text2 경로를 만들려고 할떄 mkdirs()를 사용하면 text1,text2 2개를
+만들어준다. 반면 mkdir() 그렇지 않다. 
+
+
+[파일클래스를 이용하여 파일처리]
+
+디렉터리가 아닌 파일을 처리하는 메소드를 만들어 보았다 먼저 createNewFile()메소드를
+사용해서 파일을 생성한다. 
+
+ublic class Filemanager {
+    public static void main(String[]args){
+        String ParentName="C:\\godofjava\\text";
+        String fileName ="text.txt";
+        Filemanager filemanager=new Filemanager();
+        filemanager.makeFile(ParentName , fileName);
+    }
+
+   private void makeFile(String ParentName, String fileName) {
+        File file=new File(ParentName,fileName);
+
+       try {
+           System.out.println("create result"+file.createNewFile());
+       } catch (IOException e) {
+           e.printStackTrace();
+       }
+   }
+}
+
+
+
+
+[InputStream과 OutputStream은 자바 스트림의 부모들이다.]
+
+이제 본격적으로 데이터의 입출력을 알아보자 자바의 I/O는 기본적으로 InputStream과 OutputStream이라는 
+abstract클래스를 통해서 제공된다. 따라서 어떤 대상의 데이터를 읽을 떄에는 InputStream의 자식클래스를 통해서 읽고
+OutputStream의 자식클래스를 통해서 쓰면은 된다.
+
+public abstract class InputStream extends Object implements Closeable
+
+앞서 말한대로 abstract 클래스로 선언되어있다. InputStream 클래스를 제대로 사용하려면 이 클래스를
+확장한 자식 클래스들을 알아 보아야한다. Closeable이라는 인터페이스는 무엇일까? 이 인터페이스에는 close()라는 메서드만 있다.
+이 인터페이스를 구현하면 해당 리소스는 close()메서드를 이용하여 닫으라는 것을 의미한다. java.io패키지에 있는 클래스를
+사용할 떄에는 하던 작업이 종료되면 close()로 항상 닫아줘야한다.  참고로 여기서 리소스 라는 것은 파일이 될수도 있고 네트워크 
+연결이 될수가 있다. 스트림을 통해서 작업하는 모든것은 리소스이다.
+
+
+[InputStream메소드들]
+available() 스트림에서 중단없이 읽을 수 있는 바이트의 개수리턴
+mark(int readlimit) 스트림의 현재 위치를 표시해둔다. 
+read() 스트림에서 바이트를 읽는다. 이클래스에 선언된 유일한 abstract 메소드
+
+
+[InputStream 클래스들]
+FileInputStream 파일을 읽는데 사용한다 
+FilterInputStream 이 클래스는 다른 입력 스트림을 포괄하며
+ObjectInputStream ObjectOutPutStream으로 저장한 데이터를 읽는데 사용한다.
+
+
+
+[Reader Writer]
+지금까지 살펴본 Stream은  byte를 다루기 위한 것이면 Reader와 Writer는 char기반의 문자열을 
+처리하기 위한 클래스 이다. 즉 우리가 일반적으로 텍스트 에디터로 쉽게 볼수 있는 파일들을
+처리하기 위한 클래스이다. 
+
+[Reader클래스의 메소드]
+
+boolean ready()
+현재 읽을 준비가 되었는가?
+
+void mark(int readAheadLimit)
+Reader의 현재 위치를 표시해둔다 int값은 표시해 둔 자리의 최대 유효길이이다.
+
+void reset()
+현재 위치를 mark()메소드가 호출되었던 위치로 되돌린다.
+
+int read()
+하나의 char을 읽는다
+
+int read(char[] cbuf)
+매개변수로 넘어온 char배열에 데이터를 담는다 리턴값은 데이터를 담은 개수이다.
+
+[Writer클래스의 메소드]
+
+Writer append(char c)
+매개변수로 넘어온 char을 추가한다.
+
+Writer append(CharSequence csq)
+매개변수로 넘어온 CharSequence를 추가한다.
+
+void write(char[]buf)
+매개변수로 넘어온 char의 배열을 추가한다.
+
+void write(String str)
+매개변수로 넘어온 문자열을 쓴다.
+
+[텍스트 파일을 써보자]
+자바에서 char기반의 내용을 파일로 쓰기 위해서는 FileWriter라는 클래스를 사용한다. 먼저 이 클래스의 생성자를 살펴보자
+
+FileWriter(File file)
+File객체를 매개변수로 받아 객체를 생성한다.
+
+FileWriter(String fileName)
+지정한 문자열의 경로와 파일 이름에 해당하는 객체를 생성한다.
+
+그런데 Writer에 있는 write()나 append()메소드를 사용하여 데이터를 쓰면 메소드를 호출할 떄마다 
+파일에 쓰기 때문에 매우 비효율적이다 그래서 이러한 단점을 보호하기위해서 BufferdWriter라는 클래스가 있다.
+
+BufferedWriter는 버퍼라는 공간에 저장할 데이터를 보관해 두었다가 버퍼가 차게되면 저장하도록 도와준다. 따라서
+매우효율적인 저장이 가능하다 매개 변수로 Writer을 받듯이 앞서 살펴본 FileWriter을 사용하면 파일에 저장이 가능하다.
+
+BufferdWriter(Writer out) 
+Writer객체를 매개변수로 받아 객체를 생성한다.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

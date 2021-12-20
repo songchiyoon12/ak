@@ -1,0 +1,142 @@
+[컬렉션 팩토리]
+
+자바에서는 적은 요소를 포함하는 리스트를 어떻게 만들까?
+List<String> list=new ArrayList<>();
+list.add("a");
+list.add("b");
+list.add("c");
+list.add("d");
+비교적 많은 코드가 들어가는데 다음처럼 Arrays.asList()를 쓰면된다.
+List<String>list=Arrays.asList("a","b","c");
+List<String>list2=List.of("a","b","c");
+System.out.println(list);
+System.out.println(list2);
+
+
+        Array.asList	List.of
+삽입(add)	불가능	불가능
+삭제(remove)	불가능	불가능
+변경(set, replace)	가능	불가능
+Null허용여부	허용	허용X
+
+하지만 요소 추가는 불가하다.
+그렇다면 집합을 어떨까? 안타깝게도 Arrays.asSet()이라는 팩토리 메서드는 존재하지 않는다.
+다른 방법이 필요하다 리스트를 인수로 받는 HashSet생성자를 이용이 가능하다.
+
+Set<String> friends=new HashSet<>(Array.asList("a","b","c"));
+Set<String>friends=Stream.of("a","b","c").collect(Collectors.toSet());
+하지만 두 방법 모두 매끄럽지 못하며 내부적으로 불필요한 객체 할당을 필요로 한다.
+맵은 어떨까? 작은 맵을 만들수있는 멋진 방법은 따로 없지만 걱정할 필요는 없다.
+자바9에서 작은 리스트,집합,맵을 쉽게 만들수가 있도록 팩토리 메소드를 제공한다!!
+
+[리스트 팩토리]
+List.of()팩토리를 이용하면된다! 
+List<String>list2=List.of("a","b","c"); 하지만 .list2.add("d")를 실행하면
+오류가 발생한다. 변경할수 없는 리스트가 만들어졌기 떄문이다. set도 되는 않는다 하지만
+나쁜점만 있는것은 아니다 컬렉션이 의도치 않게 변하는 것을 막을 수 있기 때문이다. 
+
+
+
+[집합 팩토리]
+Set<String> friends=Set.of("a","b","c");
+중복된 요소를 제공해 집합을 만들려고 하면 요소가 중복되어있다는 설명과 함꼐 
+에러가 발생한다. 집합은 오직 고유의 요소만 포함한다.
+
+[맵 팩토리]
+맵을 만드는 것은 리스트나 집합을 만드는것에 비해 조금 복잡하다 맵을 만들려면 키와 값이 있어야한다.
+자바 9에서는 두 가지 방법으로 바꿀 수 없는 맵을 초기화 할수 있다. Map.of팩토리 메소드에 키와 값을 번갈아
+제공하는 방법으로 맵을 만들 수 있다.
+
+Map<String,Integer> ageOfFriends=Map.of("라파엘",10,"올리비아",20);
+
+열개 이하의 키와 값 쌍을가진 작은 맵을 만들때는 이 메소드가 유용하다. 그 이상의 맵에서는
+Map.Entry<K,v> 객체를 인수로 받으며 가변 인수로 구현된 Map.ofEntries팩토리 메소드를 
+이용하는 것이 좋다 이 메서드는 키와 값을 감쌀 추가 객체 할당을 필요로 한다.
+
+Map<String,Integer> ageOf=Map.ofEntries(Map.entry("a",20));
+
+[리스트와 집합처리]
+
+자바 8에서는 List Set인터페이스에 다음과 같은 메소드르 추가했다.
+removeIf:프레디 케이트를 만족하는 요소를 제거한다 
+replaceAll:리스트에서 이용가능한 기능으로 요소를 바꾼다
+sort:List인터페이스에서 제공하는 기능으로 리스트를 정렬한다. 
+
+이들 메서드는 호출한 컬렉션 자체를 변경한다.새로운 결과를 만드는 스트림 동작과 달리
+이들 메서드는 기존 컬렉션을 바꾼다. 
+
+[맵처리]
+자바 8에서는 Map인터페이스에 몇가지 디폴트 메서드를 추가헀다 
+
+[forEach]
+
+Map<String,Integer> ageOfFriends=Map.of("라파엘",10,"올리비아",20);
+ageOfFriends.forEach((f,a)-> System.out.println(f+"is"+a));
+
+[getOrDefault]
+기존에는 찾으려는 키가 없으면 널이 반환되므로 널 확인을 했어야만 했다.
+이 메서드는 첫번쨰 인수로 키를 두번쨰 인수로 기본값을 받는다. 맵에 키가 존재하지 않으면
+두 번쨰 인수로 받은 기본값을 반환한다.
+
+System.out.println(map2.getOrDefault("안녕","없네")); 
+System.out.println(map2.getOrDefault("잘가","없네"));
+
+출력값
+하세요
+없네
+
+[계산 패턴]
+맵에 키가 존재하는지 여부에 따라 어떤 동작을 실행하고 결과를 저장해야하는 상황이
+필요한 떄가 있다. 예를 들어 키를 이용해 값비싼 동작을 실행해서 얻은 결과를 캐시하려 한다
+키가 존재하면 결과를 다시 계산할 필요가 없다. 다음의 세가 연산이 이런 상황에서 도움을 준다.
+
+computeIfAbsent:해당값이 없으면 키를 이용해 새로값을 계산하고 맵에추가
+computeIfPresent: 제공된 키가 존재하면 새값을 계산
+compute: 제공된 키로 새값을 계산하고 저장.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,58 @@
+[리다이렉트]
+웹 브라우저의 새로 고침은 마지막에 서버에 전송한 데이터를 다시 전송한다.
+새로고침 문제를 해결하려면 상품 저장후에 뷰 텟플릿으로 이동하는 것이아니라 
+상품상세 화면으로 리다이렉트를 호출하는 것이다. 웹 브라우저는 리다이렉트의
+영향으로 상품 저장후에 실제 상품 상세 화면으로 다시 이동한다. 따라서 마지막에 호출한
+내용이 상품상세 화면인 GET /items/{id}가 되는 것이다. 이후 새로고침을 해도 상품 상세 화면으로
+이동하게 되므로 새로고침 문제 해결이 가능하다
+
+
+변경전
+@PostMapping("/add")
+    public String addItemV3(@ModelAttribute Item item){
+        itemRepository.save(item);
+        return "basic/item";
+    }
+    
+변경후
+@PostMapping("/add")
+   public String addItemV3(@ModelAttribute Item item){
+        itemRepository.save(item);
+        return "redirect:/basic/items/"+item.getId();
+             }
+             
+             
+[RedirectAttributes]
+
+상품을 저장하고 상품 상세화면으로 리다이렉트 한것 까지는 좋았다 그런데 고객 입장에서는 저장이 
+잘된 것인지 안된 것인지 확신이 들지는 않는다. 그래서 저장이 잘되었으면 상품 상세 화면에
+"저장되었습니다."라는 메시지를 보여달라는 요구사항이 왔다 간단하게 해결해보자
+
+            
+  @PostMapping("/add")
+   public String addItemV3(@ModelAttribute Item item){
+        Item savedItem=itemRepository.save(item);
+        redirectAttributes.addAttribute("itemId",savedItem.getId());
+        redirectAttributes.addAttribute("status",true);
+        
+        return "redirect:/basic/items/"+item.getId();
+             }
+             
+             
+             
+             
+             
+             
+             
+             
+             
+             
+             
+             
+             
+             
+             
+             
+             
+             
+             

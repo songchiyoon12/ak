@@ -1,0 +1,74 @@
+[Optional]
+값이 있으면 Optional클래스는 값을 감싼다. 반면 값이 없으면 Optional.empty메소드로
+Optional을 반환한다. Optional.empty는 Optional의 특별한 싱글턴 인스턴스를 반환하는
+정적 팩토리 메서드이다. 
+
+null참조와 Optional.empty뭐가 다를까? 의미상으론 둘이 비슷하지만 실제로는 차이점이 많다~
+null를 참조하려 하면 NullPointerException이 발생하지만 Optional.empty()은 Optional객체이므로
+이를 다양한 방식으로 활용이 가능하다. 
+
+[Optional적용패턴]
+지금까지 Optional형식을 이용해서 우리 도메인 모델의 의미를 더 명확하게 만들 수 있다
+null참조 대신 값이 없는 상황을 표현할 수 있음을 확인했다. 그럼 실제로는 Optional을 어떻게
+활용이 가능할까 Optional로 감싼 값을 실제로 어떻게 사용이 가능할까?
+
+[Optional객체 만들기]
+
+
+#빈 Optional
+이전에도 언급했듯이 정적 팩토리 메서드 Optional.empty()로 빈Optional객체를 얻을수 있다.
+Optional<Car> optCar=Optional.empty();
+
+#null이 아닌 값으로 Optional만들기
+또는 정적 팩토리 메서드 Optional.of로 null이 아닌 값을 포함하는 Optional을 만들수있다.
+Optional<Car> optCar=Optional.of(car);
+
+#null값으로 Optional만들기
+Optional<Car> optCar=Optional.ofNullable(car);
+
+그런데 Optional에서 어떻게 값을 가져올까? get메서드를 이용해서 값을 가져올수있다.
+그런데 Optional이 비어있으면 get을 호출했을떄 예외가 발생한다. 따라서 먼저 Optional로
+명시적인 검사를 제거할수 있는 방법을 살펴본다. 
+
+[Map으로 Optional의 값을 추출하고 변환하기]
+보통 객체의 정보를 추출할떄는 Optional을 사용할떄가 많다. 예를 들어 보험회사의 이름을
+추출한다고 가정하자 다음 코드처럼 이름 정보에 접근하기 전에 insurance가 null인지 확인 해야한다.
+String name=null;
+if(insurance!=null){
+	name=insurance.getName();
+} 
+
+Optional<Insurance> optInsurance=Optional.ofNullable(insurance);
+Optional<String> name=optInsurance.map(Insurance::getName);
+
+
+
+[anyMath]
+프레디케이트가 주어진 스트림에서 적어도 한 요소와 일치하는지 확인
+[allMath]
+모든 요소가 주어진 프레이케이트와 일치하는지
+[flatMap]
+flatMap 메서드는 스트림의 형태가 배열과 같을 때, 모든 원소를 단일 원소 스트림으로 반환할 수 있습니다.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

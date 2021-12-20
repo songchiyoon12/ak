@@ -1,0 +1,79 @@
+[Fork/Join]
+Fork/Join이라는 것은 어떤 계산 작업을 할때 여러개로 나누어서 계산한후에 겷과를 모으는 작업을
+의미한다. Fork는 여러개로 나누는 것을 말하고 Join은 나누어서 작업한 결과를 모으는 것을 의미한다.
+
+즉 Fork는 여러개로 나누는 것을 의미하고 Join은 나누어서 작업한 결과를 모으는 것이다.
+그런데 자바7에서 추가된 Fork/Join개념은 단순하게 작업을 쪼개고 그 결과를 받는 단순한 작업만을 포함하지 
+않는다. 여기에는 work stealing라는 개념이 포함되어있다. 
+
+Fork/Join의 기본 작업 개념은 다음과 같다.
+
+[개념]
+
+if(작업의 단위가 충분히 작을경우){
+	해당작업시행
+}else{
+	작업을 반으로 쪼개서 2개로 나눔 
+	두작업을 동시에하고 ,2작업이 끝날떄까지 결과를 기다림
+}
+
+이러한 식으로 Fork/Join이 실행되기 때문에 보통 이 연산은 회귀적으로 수행될떄 많이 사용된다. 
+여기서 회귀적이라는 말은 자신의 메소드를 자신이 부르는 경우를 의미한다. Fork/Join기능은 java.util.concurrent패키지의
+RecursiveAction ,RecursiveTask라는 abstract클래스를 사용해야 한다. 두 클래스모두 compute라는 메소드가 있고 이 메소드가
+재귀 호출되고 연산을 수행한다고 보면된다. 
+
+[RecursiveTask]
+클래스는 v라는 타입으로 결과가 리턴된다. 두클래스 모드 ForkJoinTask라는 abstract클래스를 확장한 것을 볼수있다.
+ForkJoinTask라는 클래스는 Future라는 인터페이스를 구현했다. 우리들이 Fork/Join작업을 수행하려면 RecursiveTask클래스를 확장해서
+사용을 하면된다. 두 클래스 모두 compute라는 이 메소드가 재귀호출된다. 작업을 수행하는 클래스를 만든 후에는 ForkJoinPool이라는
+클래스를 사용하여서 작업을 시작한다. 이 클래스에서 제공하는 메소드는 용도에 따라서 다음과 같이 구분한다.
+
+Fork/Join클라이언트 밖에서 호출 
+비동기적 호출 수행시 execute(ForkJoinTask)
+호출후 결과대기    invoke(ForkJoinTask)
+호출후 객체수신   submit(ForkJoinTask)
+
+클라이언트 내에서 호출
+ForkJoinTask.fork()
+ForkJoinTask.invoke()
+ForkJoinTask.fork()
+
+
+
+
+[코드]
+
+long total=0;
+for(long loop=from; loop<=total;loop++){
+	total+=loop;
+	}
+한번 구현해보자
+
+
+long middle = (from + to) / 2; //절반 정함
+GetSum sumPre = new GetSum(from, middle); //
+sumPre.fork();
+GetSum sumPost = new GetSum(middle + 1, to);
+return sumPost.compute() + sumPre.join();
+
+
+[구현 클래스]
+public class ForkJoinSample {
+    static final ForkJoinPool mainpool=new ForkJoinPool();
+
+    public static void main(String[]args){
+        ForkJoinSample sample=new ForkJoinSample();
+        sample.cal();
+    }
+
+    private void cal() {
+        long from=0;
+        long to=10;
+
+        GetSum getSum=new GetSum(from ,to);
+        Long resul=mainpool.invoke(getSum);
+        System.out.println(resul);
+    }
+}
+
+ForkJoinPool이라는 객체생성 ForkJoinPool에 있는 invoke()라는 메소드를 사용하여 객체를 넘겨준다. 
